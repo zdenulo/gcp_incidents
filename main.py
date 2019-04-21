@@ -1,8 +1,8 @@
-
 import logging
-
+import datetime
 import requests
-import twitter
+from TwitterAPI import TwitterAPI
+from threader import Threader
 
 from google.cloud import firestore
 from flask import Flask
@@ -12,10 +12,10 @@ from settings import TWITTER_API_SECRET, TWITTER_TOKEN_SECRET, TWITTER_ACCESS_TO
 
 db = firestore.Client(project=GCP_PROJECT_ID)
 
-api = twitter.Api(consumer_key=TWITTER_API_KEY,
-                  consumer_secret=TWITTER_API_SECRET,
-                  access_token_key=TWITTER_ACCESS_TOKEN,
-                  access_token_secret=TWITTER_TOKEN_SECRET)
+api = TwitterAPI(consumer_key=TWITTER_API_KEY,
+                 consumer_secret=TWITTER_API_SECRET,
+                 access_token_key=TWITTER_ACCESS_TOKEN,
+                 access_token_secret=TWITTER_TOKEN_SECRET)
 
 STATUS_URL = "https://status.cloud.google.com/incidents.json"
 
@@ -50,43 +50,80 @@ def format_text(data, new):
 
     :param data: Dictionary containing info about incident
     :param new: boolean, if True it means that incident is new
-    :return: text which be posted to Twitter
+    :return: list of strings which can be published as Twitter messages
     """
 
     update_text = data['most-recent-update']['text']
     severity = data['severity'].capitalize()
     service_name = data['service_name']
+    desc = data['external_desc']
     url = get_incident_url(data)
     if new:
-        man_len = len(" #googlecloud") + len(url) + 1 + len(severity) + 1 + len(service_name) + len(" incident:")
-        status_text = update_text[0:280 - man_len]
-        tweet_text = f"{severity} {service_name} incident: {status_text} #googlecloud {url}"
+        intro_text = f"{severity} {service_name} incident: {desc} #googlecloud {url}"
     else:
-        man_len = len(" #googlecloud") + len(url) + 1 + len(service_name) + len(" incident:")
-        status_text = update_text[0:280 - man_len]
-        tweet_text = f"Update: {service_name} incident {status_text} #googlecloud {url}"
-    return tweet_text
+        intro_text = f"Update: {severity} {service_name} incident: {desc} #googlecloud {url}"
+
+    threads = create_threads(update_text)
+    threads.insert(0, intro_text)
+    return threads
 
 
-def tweet_message(tweet_text):
+def tweet_message(tweets):
     """Post text to Twitter profile and saves info from Twitter to Firestore
 
-    :param tweet_text: text of message
+    :param tweets: list of tweets
     :return:
     """
 
-    try:
-        twitter_response = api.PostUpdate(tweet_text)
-        twitter_data_dict = twitter_response.AsDict()
-        tweet_ref = db.collection('tweets').document()
-        tweet_ref.set(twitter_data_dict)
-    except Exception as e:
-        logging.error(e)
+    to_save = []
+    if len(tweets()) > 2:
+        # send threaded tweets
+        th = Threader(tweets, api)
+        th.send_tweets()
+        responses = th.responses_
+        for r in responses:
+            resp = r.response
+            json_data = resp.json()
+            to_save.append(json_data)
+    else:
+        params = {'status': tweets[0]}
+        r = api.request('statuses/update', params=params)
+        resp = r.response
+        json_data = resp.json()
+        to_save.append(json_data)
+    tweet_ref = db.collection('tweets').document()
+    tweet_ref.set({'threads': to_save, 'created': datetime.datetime.utcnow()})
 
 
 def tweet(data, new):
-    text = format_text(data, new)
-    tweet_message(text)
+    text_lst = format_text(data, new)
+    tweet_message(text_lst)
+
+
+def create_threads(text):
+    """Splits text into list of strings suitable to publish as Twitter message thread
+
+    :param text: Input text which will be tokenized
+    :return: list of strings
+    """
+
+    words = text.split(' ')
+    threads = []
+    t = ""
+    run = True
+    while run:
+        while len(t) < 270:
+            if not words:
+                run = False
+                break
+            w = words.pop(0)
+            if not w:
+                continue
+            t += w
+            t += " "
+        threads.append(t)
+        t = ""
+    return threads
 
 
 @app.route('/tasks/status')
@@ -97,11 +134,11 @@ def status():
         tweet_text = f"GCP status website returned response: {r.status_code} "
         error_msg = r.text[0:280 - len(tweet_text)]
         tweet_text += error_msg
-        tweet_message(tweet_text)
+        tweet_message([tweet_text])
         return 'ok'
 
     items = r.json()
-    items = items[0:11]  # process only 10 most recent
+    items = items[0:11]  # process only 10 most recent incidents
     incidents_ref = db.collection('incidents')
     for item in items:
         key = get_key(item)
@@ -111,6 +148,7 @@ def status():
             # create new incident in db and tweet
             logging.info("new incident")
             logging.info(item)
+
             tweet(item, True)
             doc_ref.set(item)
         else:
