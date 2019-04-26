@@ -76,7 +76,7 @@ def tweet_message(tweets):
     """
 
     to_save = []
-    if len(tweets()) > 2:
+    if len(tweets) > 2:
         # send threaded tweets
         th = Threader(tweets, api)
         th.send_tweets()
