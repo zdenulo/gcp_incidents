@@ -65,6 +65,7 @@ def format_text(data, new):
 
     threads = create_threads(update_text)
     threads.insert(0, intro_text)
+    print(f"intro text: {intro_text}")
     return threads
 
 
@@ -75,6 +76,7 @@ def tweet_message(tweets):
     :return:
     """
 
+    print("tweets :{}".format(tweets))
     to_save = []
     if len(tweets) > 2:
         # send threaded tweets
@@ -112,17 +114,21 @@ def create_threads(text):
     t = ""
     run = True
     while run:
-        while len(t) < 270:
+        while True:
             if not words:
                 run = False
                 break
-            w = words.pop(0)
+            w = words.pop(0).strip()
             if not w:
                 continue
-            t += w
-            t += " "
-        threads.append(t)
-        t = ""
+            if len(t) + len(w) < 275:
+                t += w
+                t += " "
+            else:
+                threads.append(t)
+                t = w
+                t += " "
+                break
     return threads
 
 
