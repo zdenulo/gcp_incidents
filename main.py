@@ -58,13 +58,16 @@ def format_text(data, new):
     service_name = data['service_name']
     desc = data['external_desc']
     url = get_incident_url(data)
+    end = data['end']
     if new:
         intro_text = f"{severity} {service_name} incident: {desc} #googlecloud {url}"
+    elif end:
+        intro_text = f"Resolved: {severity} {service_name} incident: {desc} #googlecloud {url}"
     else:
         intro_text = f"Update: {severity} {service_name} incident: {desc} #googlecloud {url}"
 
-    threads = create_threads(update_text)
-    threads.insert(0, intro_text)
+    threads = create_threads(intro_text + ' ' + update_text)
+    # threads.insert(0, intro_text)
     print(f"intro text: {intro_text}")
     return threads
 
@@ -99,6 +102,7 @@ def tweet_message(tweets):
 
 def tweet(data, new):
     text_lst = format_text(data, new)
+    print(text_lst)
     tweet_message(text_lst)
 
 
@@ -117,6 +121,7 @@ def create_threads(text):
         while True:
             if not words:
                 run = False
+                threads.append(t)
                 break
             w = words.pop(0).strip()
             if not w:
