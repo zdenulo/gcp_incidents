@@ -81,7 +81,7 @@ def tweet_message(tweets):
 
     print("tweets :{}".format(tweets))
     to_save = []
-    if len(tweets) > 2:
+    if len(tweets) > 1:
         # send threaded tweets
         th = Threader(tweets, api)
         th.send_tweets()
@@ -89,6 +89,7 @@ def tweet_message(tweets):
         for r in responses:
             resp = r.response
             json_data = resp.json()
+            print("twitter response".format(json_data))
             to_save.append(json_data)
     else:
         params = {'status': tweets[0]}
