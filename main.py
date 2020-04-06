@@ -83,7 +83,7 @@ def tweet_message(tweets):
     to_save = []
     if len(tweets) > 1:
         # send threaded tweets
-        th = Threader(tweets, api)
+        th = Threader(tweets, api, wait=1)
         th.send_tweets()
         responses = th.responses_
         for r in responses:
