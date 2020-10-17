@@ -1,8 +1,9 @@
+import re
 import logging
 import datetime
 import requests
 from TwitterAPI import TwitterAPI
-from threader import Threader
+from twitter_threads import Threader
 
 from google.cloud import firestore
 from flask import Flask
@@ -107,35 +108,80 @@ def tweet(data, new):
     tweet_message(text_lst)
 
 
-def create_threads(text):
+def create_threads(text, splitter='. '):
     """Splits text into list of strings suitable to publish as Twitter message thread
 
     :param text: Input text which will be tokenized
     :return: list of strings
     """
 
-    words = text.split(' ')
-    threads = []
+    if len(text) <= 275:
+        return [text]
+    textr = re.sub(r'\r+\n+|\n+', '\n', text)
+    textr = textr.replace('.\n', splitter)
+    regex = r"((?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)?,?\s?(?:\d{4}-\d{2}-\d{2})\s(?:\d{2}:\d{2})?\s?(?:US/Pacific)?)|(?:\.\s))"
+    if splitter != '. ':
+        s_temp = textr.split(splitter)
+    else:
+        s_temp = re.split(regex, textr)
+
+    s = []
+    for x in s_temp:
+        x = x.strip()
+        if not x or x == '.':
+            continue
+        s.append(x)
+    out = []
     t = ""
-    run = True
-    while run:
-        while True:
-            if not words:
-                run = False
-                threads.append(t)
-                break
-            w = words.pop(0).strip()
-            if not w:
-                continue
-            if len(t) + len(w) < 275:
-                t += w
-                t += " "
+    prev_date_split = False
+    total_s = len(s)
+    extra_tweets = None
+    for i, item in enumerate(s):
+        item = item.strip()
+        if extra_tweets:
+            extra_tweets_text = ' '.join(extra_tweets)
+            item = extra_tweets_text + ' ' + item
+            extra_tweets = None
+        if not t:
+            t_temp = item
+        else:
+            # t_temp = t + ". " + item
+            if prev_date_split and item[0].istitle():  # if date is at the end od sentence and next item is new one
+                t_temp = t + '. ' + item
+                prev_date_split = False
+            elif prev_date_split:
+                t_temp = t + ' ' + item
+                prev_date_split = False
+            elif re.match(regex, item):  # if it's split on date
+                prev_date_split = True
+                t_temp = t + ' ' + item
             else:
-                threads.append(t)
-                t = w
-                t += " "
-                break
-    return threads
+                t_temp = t + splitter + item
+                prev_date_split = False
+
+        t_temp = t_temp.strip()
+        len_t_temp = len(t_temp)
+        if len_t_temp <= 275:
+            t = t_temp
+            if i == (total_s - 1):
+                out.append(t)
+        else:
+            if not t:
+                t = t_temp
+            len_t = len(t)
+            if len_t > 275:
+                mini_tweets = create_threads(t, ' ')
+                out.append(mini_tweets[0])
+                extra_tweets = mini_tweets[1:]
+            else:
+                out.append(t)
+            if i == (total_s - 1):  # if it's last sentence append also as a tweet
+                out.append(item)
+            elif not extra_tweets:
+                t = item
+            else:  # in case there was recursions
+                t = ''
+    return out
 
 
 @app.route('/tasks/status')
