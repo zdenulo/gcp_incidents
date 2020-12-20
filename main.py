@@ -61,15 +61,15 @@ def format_text(data, new):
     url = get_incident_url(data)
     end = data['end']
     if new:
-        intro_text = f"{severity} {service_name} incident: {desc} #googlecloud {url}"
+        intro_text = f"{severity} {service_name} incident: {desc} {url}"
     elif end:
-        intro_text = f"Resolved: {severity} {service_name} incident: {desc} #googlecloud {url}"
+        intro_text = f"Resolved: {severity} {service_name} incident: {desc} {url}"
     else:
-        intro_text = f"Update: {severity} {service_name} incident: {desc} #googlecloud {url}"
-
-    threads = create_threads(intro_text + ' ' + update_text)
+        intro_text = f"Update: {severity} {service_name} incident: {desc} {url}"
+    full_text = intro_text + ' ' + update_text
+    threads = create_threads(full_text)
     # threads.insert(0, intro_text)
-    print(f"intro text: {intro_text}")
+    # print(f"intro text: {intro_text}")
     return threads
 
 
@@ -161,7 +161,7 @@ def create_threads(text, splitter='. '):
 
         t_temp = t_temp.strip()
         len_t_temp = len(t_temp)
-        if len_t_temp <= 275:
+        if len_t_temp <= 272:
             t = t_temp
             if i == (total_s - 1):
                 out.append(t)
@@ -169,7 +169,7 @@ def create_threads(text, splitter='. '):
             if not t:
                 t = t_temp
             len_t = len(t)
-            if len_t > 275:
+            if len_t > 272:
                 mini_tweets = create_threads(t, ' ')
                 out.append(mini_tweets[0])
                 extra_tweets = mini_tweets[1:]
@@ -233,3 +233,4 @@ def main():
 
 if __name__ == '__main__':
     app.run(port=8080)
+    # status()

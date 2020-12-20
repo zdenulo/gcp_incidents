@@ -1,6 +1,8 @@
 from TwitterAPI import TwitterAPI
 from tqdm import tqdm
 from time import sleep
+import logging
+
 
 class Threader(object):
     def __init__(self, tweets, api, user=None, wait=None, max_char=280, end_string=True):
@@ -86,7 +88,11 @@ class Threader(object):
                 this_status = tweet
             self.tweets.append(this_status)
 
-        if not all(len(tweet) < int(self.max_char) for tweet in self.tweets):
+        # for t in self.tweets:
+        #     l_t = len(t)
+        #     if l_t >= 280:
+        #         print(l_t, t)
+        if not all(len(tweet) <= int(self.max_char) for tweet in self.tweets):
             raise ValueError("Not all tweets are less than {} characters".format(int(self.max_char)))
 
     def send_tweets(self):
@@ -106,12 +112,17 @@ class Threader(object):
 
             # Send POST and get response
             resp = self.api.request('statuses/update', params=params)
-            if 'errors' in resp.json().keys():
-                raise ValueError('Error in posting tweets:\n{}'.format(
-                    resp.json()['errors'][0]))
+            resp_json = resp.json()
+            logging.info('twitter response: {}'.format(resp_json))
+            if 'errors' in resp_json.keys():
+                # raise ValueError('Error in posting tweets:\n{}'.format(
+                #     resp.json()['errors']))
+                logging.error(resp_json)
             self.responses_.append(resp)
             self.params_.append(params)
-            self.tweet_ids_.append(resp.json()['id'])
+            tw_id = resp_json.get('id')
+            if tw_id:
+                self.tweet_ids_.append(tw_id)
             if isinstance(self.wait, (float, int)):
                 sleep(self.wait)
         self.sent = True
