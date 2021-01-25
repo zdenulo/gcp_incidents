@@ -93,6 +93,7 @@ class Threader(object):
         #     if l_t >= 280:
         #         print(l_t, t)
         if not all(len(tweet) <= int(self.max_char) for tweet in self.tweets):
+            logging.error(self.tweets)
             raise ValueError("Not all tweets are less than {} characters".format(int(self.max_char)))
 
     def send_tweets(self):

@@ -108,7 +108,7 @@ def tweet(data, new):
     tweet_message(text_lst)
 
 
-def create_threads(text, splitter='. '):
+def create_threads(text, splitter='. ', recursion=False):
     """Splits text into list of strings suitable to publish as Twitter message thread
 
     :param text: Input text which will be tokenized
@@ -118,13 +118,21 @@ def create_threads(text, splitter='. '):
     if len(text) <= 275:
         return [text]
     textr = re.sub(r'\r+\n+|\n+', '\n', text)
-    textr = textr.replace('.\n', splitter)
+    # textr = textr.replace('.\n', splitter)  # end of sentence
+
+    textr = re.sub(r'\n+', '\n', textr)
+    textr = re.sub(r' \n ', ' ', textr)
+    textr = textr.replace('\n', ' ')  # just new line
+    textr = re.sub(r' +', ' ', textr)  # multiple spaces into one
+
+
     regex = r"((?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)?,?\s?(?:\d{4}-\d{2}-\d{2})\s(?:\d{2}:\d{2})?\s?(?:US/Pacific)?)|(?:\.\s))"
     if splitter != '. ':
         s_temp = textr.split(splitter)
     else:
         s_temp = re.split(regex, textr)
 
+    # clean / remove unnecessary words
     s = []
     for x in s_temp:
         x = x.strip()
@@ -132,19 +140,21 @@ def create_threads(text, splitter='. '):
             continue
         s.append(x)
     out = []
-    t = ""
+    t = ""  # tweet
     prev_date_split = False
-    total_s = len(s)
+    total_s = len(s)  # number of words
     extra_tweets = None
+    # iterate through words
     for i, item in enumerate(s):
         item = item.strip()
-        if extra_tweets:
+        if extra_tweets:  # if there are extra tweets from previous step (in case it called recursion)
             extra_tweets_text = ' '.join(extra_tweets)
             item = extra_tweets_text + ' ' + item
             extra_tweets = None
         if not t:
             t_temp = item
         else:
+            # append item to the tweet
             # t_temp = t + ". " + item
             if prev_date_split and item[0].istitle():  # if date is at the end od sentence and next item is new one
                 t_temp = t + '. ' + item
@@ -160,23 +170,32 @@ def create_threads(text, splitter='. '):
                 prev_date_split = False
 
         t_temp = t_temp.strip()
-        len_t_temp = len(t_temp)
-        if len_t_temp <= 272:
+        len_t_temp = len(t_temp)  # length of tweet
+        if len_t_temp <= 272:  # if it will not overflow, just set the tweet and if it's the last one append
             t = t_temp
             if i == (total_s - 1):
                 out.append(t)
         else:
-            if not t:
+            if not t:  # not sure if this is necessary
                 t = t_temp
             len_t = len(t)
-            if len_t > 272:
-                mini_tweets = create_threads(t, ' ')
+            if len_t > 272:  # if it overflows, make smaller with recursion, otherwise append to the tweet
+                mini_tweets = create_threads(t, ' ', recursion=True)
                 out.append(mini_tweets[0])
                 extra_tweets = mini_tweets[1:]
             else:
                 out.append(t)
-            if i == (total_s - 1):  # if it's last sentence append also as a tweet
-                out.append(item)
+            # when it's one big tweet separated only with recursion, don't add it, instead add all
+            if i == (total_s - 1) and extra_tweets:
+                out += extra_tweets
+            elif i == (total_s - 1):  # if it's last one, append
+                if len_t_temp > 272:  # case when last item is longer than max
+                    mini_tweets = create_threads(item, ' ', recursion=True)
+                    for mt in mini_tweets:
+                        out.append(mt)
+                else:
+                    out.append(item)
+
             elif not extra_tweets:
                 t = item
             else:  # in case there was recursions
