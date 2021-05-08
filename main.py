@@ -42,7 +42,7 @@ def get_incident_url(data):
     """
 
     uri = data['uri']
-    full_url = 'https://status.cloud.google.com{}'.format(uri)
+    full_url = 'https://status.cloud.google.com/{}'.format(uri)
     return full_url
 
 
@@ -54,7 +54,7 @@ def format_text(data, new):
     :return: list of strings which can be published as Twitter messages
     """
 
-    update_text = data['most-recent-update']['text']
+    update_text = data['most_recent_update']['text']
     severity = data['severity'].capitalize()
     service_name = data['service_name']
     desc = data['external_desc']
@@ -230,8 +230,8 @@ def status():
             doc_ref.set(item)
         else:
             db_data = doc.to_dict()
-            most_recent_new = item[u'most-recent-update']
-            most_recent_db = db_data[u'most-recent-update']
+            most_recent_new = item[u'most_recent_update']
+            most_recent_db = db_data[u'most_recent_update']
 
             item_created = most_recent_new['created']
             db_created = most_recent_db['created']
@@ -251,5 +251,5 @@ def main():
 
 
 if __name__ == '__main__':
-    app.run(port=8080)
-    # status()
+    # app.run(port=8080)
+    status()
