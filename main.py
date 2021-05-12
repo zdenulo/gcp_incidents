@@ -59,7 +59,7 @@ def format_text(data, new):
     service_name = data['service_name']
     desc = data['external_desc']
     url = get_incident_url(data)
-    end = data['end']
+    end = data.get('end', '')
     if new:
         intro_text = f"{severity} {service_name} incident: {desc} {url}"
     elif end:
