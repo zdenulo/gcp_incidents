@@ -117,7 +117,7 @@ def create_threads(text, splitter='. ', recursion=False):
 
     if len(text) <= 275:
         return [text]
-    textr = re.sub(r'\r+\n+|\n+', '\n', text)
+    textr = re.sub(r'\r+\n+|\n+|\\n+', '\n', text)
     # textr = textr.replace('.\n', splitter)  # end of sentence
 
     textr = re.sub(r'\n+', '\n', textr)
@@ -225,7 +225,6 @@ def status():
             # create new incident in db and tweet
             logging.info("new incident")
             logging.info(item)
-
             tweet(item, True)
             doc_ref.set(item)
         else:
@@ -239,6 +238,15 @@ def status():
                 # there is new update for existing incident, update db, tweet
                 logging.info("updating incident")
                 logging.info(item)
+                updates = item['updates']
+                if len(updates) > 1:
+                    most_recent_update = updates[0]
+                    latest_update = updates[1]
+                    if most_recent_update == latest_update:
+                        logging.error('same update')
+                        logging.debug(most_recent_update)
+                        logging.debug(latest_update)
+                        continue
                 tweet(item, False)
                 doc_ref.set(item)
 

@@ -119,6 +119,7 @@ class Threader(object):
                 # raise ValueError('Error in posting tweets:\n{}'.format(
                 #     resp.json()['errors']))
                 logging.error(resp_json)
+                break
             self.responses_.append(resp)
             self.params_.append(params)
             tw_id = resp_json.get('id')
