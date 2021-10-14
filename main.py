@@ -115,7 +115,7 @@ def create_threads(text, splitter='. ', recursion=False):
     :return: list of strings
     """
 
-    if len(text) <= 275:
+    if len(text) <= 273:
         return [text]
     textr = re.sub(r'\r+\n+|\n+|\\n+', '\n', text)
     # textr = textr.replace('.\n', splitter)  # end of sentence
