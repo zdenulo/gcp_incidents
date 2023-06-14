@@ -1,8 +1,7 @@
-from TwitterAPI import TwitterAPI
-from tqdm import tqdm
+# from TwitterAPI import TwitterAPI  # type: ignore
+import tweepy
+from tqdm import tqdm  # type: ignore
 from time import sleep
-import logging
-
 
 class Threader(object):
     def __init__(self, tweets, api, user=None, wait=None, max_char=280, end_string=True):
@@ -32,8 +31,8 @@ class Threader(object):
             "4/" or "5x".
         """
         # Check twitter API
-        if not isinstance(api, TwitterAPI):
-            raise ValueError('api must be an instance of TwitterAPI')
+        if not isinstance(api, tweepy.Client):
+            raise ValueError('api must be an instance of tweepy.Client')
         self.api = api
 
         # Check tweet list
@@ -80,20 +79,13 @@ class Threader(object):
         for ii, tweet in enumerate(tweets):
             this_status = '{}{}'.format(user, tweet)
             if self.end_string is True and len_tweets > 1:
-                # thread_char = '/' if (ii+1) != len(tweets) else 'x'
-                # end_str = '{}{}'.format(ii + 1, thread_char)
                 end_str = '{}/{}'.format(ii + 1, len_tweets)
                 this_status += ' {}'.format(end_str)
             else:
                 this_status = tweet
             self.tweets.append(this_status)
 
-        # for t in self.tweets:
-        #     l_t = len(t)
-        #     if l_t >= 280:
-        #         print(l_t, t)
-        if not all(len(tweet) <= int(self.max_char) for tweet in self.tweets):
-            logging.error(self.tweets)
+        if not all(len(tweet) < int(self.max_char) for tweet in self.tweets):
             raise ValueError("Not all tweets are less than {} characters".format(int(self.max_char)))
 
     def send_tweets(self):
@@ -107,24 +99,19 @@ class Threader(object):
         # Now generate the tweets
         for ii, tweet in tqdm(enumerate(self.tweets)):
             # Create tweet and add metadata
-            params = {'status': tweet}
+            # params = {'status': tweet}
+            params = dict()
             if len(self.tweet_ids_) > 0:
-                params['in_reply_to_status_id'] = self.tweet_ids_[-1]
+                params['in_reply_to_tweet_id'] = self.tweet_ids_[-1]
 
             # Send POST and get response
-            resp = self.api.request('statuses/update', params=params)
-            resp_json = resp.json()
-            logging.info('twitter response: {}'.format(resp_json))
-            if 'errors' in resp_json.keys():
-                # raise ValueError('Error in posting tweets:\n{}'.format(
-                #     resp.json()['errors']))
-                logging.error(resp_json)
-                break
-            self.responses_.append(resp)
+
+            resp = self.api.create_tweet(text=tweet, **params)
+            if resp.errors :
+                raise ValueError('Error in posting tweets:\n{}'.format(resp.errors))
+            self.responses_.append(resp.data)
             self.params_.append(params)
-            tw_id = resp_json.get('id')
-            if tw_id:
-                self.tweet_ids_.append(tw_id)
+            self.tweet_ids_.append(resp.data['id'])
             if isinstance(self.wait, (float, int)):
                 sleep(self.wait)
         self.sent = True

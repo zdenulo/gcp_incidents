@@ -2,7 +2,7 @@ import re
 import logging
 import datetime
 import requests
-from TwitterAPI import TwitterAPI
+import tweepy
 from twitter_threads import Threader
 
 from google.cloud import firestore
@@ -13,9 +13,9 @@ from settings import TWITTER_API_SECRET, TWITTER_TOKEN_SECRET, TWITTER_ACCESS_TO
 
 db = firestore.Client(project=GCP_PROJECT_ID)
 
-api = TwitterAPI(consumer_key=TWITTER_API_KEY,
+api = tweepy.Client(consumer_key=TWITTER_API_KEY,
                  consumer_secret=TWITTER_API_SECRET,
-                 access_token_key=TWITTER_ACCESS_TOKEN,
+                 access_token=TWITTER_ACCESS_TOKEN,
                  access_token_secret=TWITTER_TOKEN_SECRET)
 
 STATUS_URL = "https://status.cloud.google.com/incidents.json"
