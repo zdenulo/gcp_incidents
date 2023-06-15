@@ -1,4 +1,4 @@
 cron:
-- description: "check status json data"
-  url: /tasks/status
-  schedule: every 5 minutes
+#- description: "check status json data"
+#  url: /tasks/status
+#  schedule: every 5 minutes

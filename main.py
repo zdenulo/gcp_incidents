@@ -82,22 +82,15 @@ def tweet_message(tweets):
 
     print("tweets :{}".format(tweets))
     to_save = []
-    if len(tweets) > 1:
         # send threaded tweets
-        th = Threader(tweets, api, wait=1)
-        th.send_tweets()
-        responses = th.responses_
-        for r in responses:
-            resp = r.response
-            json_data = resp.json()
-            print("twitter response".format(json_data))
-            to_save.append(json_data)
-    else:
-        params = {'status': tweets[0]}
-        r = api.request('statuses/update', params=params)
-        resp = r.response
-        json_data = resp.json()
+    th = Threader(tweets, api, wait=5)
+    th.send_tweets()
+    responses = th.responses_
+    for r in responses:
+        json_data = r
+        print("twitter response".format(json_data))
         to_save.append(json_data)
+
     tweet_ref = db.collection('tweets').document()
     tweet_ref.set({'threads': to_save, 'created': datetime.datetime.utcnow()})
 
