@@ -1,6 +1,9 @@
-runtime: python39
+runtime: python312
 
 handlers:
 
 - url: /.*
   script: auto
+
+automatic_scaling:
+  max_instances: 5
