@@ -13,4 +13,18 @@
 .git
 .gitignore
 
-#!include:.gitignore
+# can't use this because we're uploading settings.py
+##!include:.gitignore
+
+.idea
+__pycache__
+tests
+.venv
+pyproject.toml
+rex.py
+req.py
+requirements.txt
+deploy.sh
+README.md
+settings.py.example
+uv.lock
