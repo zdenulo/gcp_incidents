@@ -1,7 +1,7 @@
 Flask
 requests
 # python-twitter==3.5
-google-cloud-firestore==0.32.1
+google-cloud-firestore==2.21.0
 threader
 tqdm
 # TwitterAPI

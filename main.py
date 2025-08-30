@@ -218,8 +218,8 @@ def status():
             # create new incident in db and tweet
             logging.info("new incident")
             logging.info(item)
-            tweet(item, True)
             doc_ref.set(item)
+            tweet(item, True)
         else:
             db_data = doc.to_dict()
             most_recent_new = item[u'most_recent_update']
@@ -232,6 +232,7 @@ def status():
                 logging.info("updating incident")
                 logging.info(item)
                 updates = item['updates']
+                doc_ref.set(item)
                 if len(updates) > 1:
                     most_recent_update = updates[0]
                     latest_update = updates[1]
@@ -241,7 +242,7 @@ def status():
                         logging.debug(latest_update)
                         continue
                 tweet(item, False)
-                doc_ref.set(item)
+
 
     return 'ok'
 
