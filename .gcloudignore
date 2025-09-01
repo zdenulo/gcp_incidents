@@ -23,7 +23,6 @@ tests
 pyproject.toml
 rex.py
 req.py
-requirements.txt
 deploy.sh
 README.md
 settings.py.example
